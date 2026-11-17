@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { request } from '@/api/client'
 
@@ -12,6 +13,16 @@ const columns = [
   "内存可用MB",
   "上次心跳时间",
   "节点状态标签"
+]
+// 节点带宽分配由带宽控制回写，采集节点列表直接读取这份清单。
+const bandwidthColumns = [
+  "带宽分配编号",
+  "带宽分配状态",
+  "带宽策略编号",
+  "下载带宽上限",
+  "突发额度",
+  "唯一配额",
+  "限速执行状态"
 ]
 const actions = [
   "提交注册",
@@ -46,7 +57,12 @@ export default function WorkerView() {
   const [total, setTotal] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [showBandwidth, setShowBandwidth] = useState(true)
   const filterFields = useMemo(() => columns.slice(0, 3), [])
+  const visibleColumns = useMemo(
+    () => (showBandwidth ? [...columns, ...bandwidthColumns] : columns),
+    [showBandwidth],
+  )
 
   const reload = useCallback(async () => {
     setErrorMessage('')
@@ -98,6 +114,7 @@ export default function WorkerView() {
           <button className="btn" type="button" onClick={() => window.open(`${ENDPOINT}/export`, '_blank')}>
             导出采集节点清单
           </button>
+          <Link className="btn" to="/bandwidth">带宽控制</Link>
         </div>
       </header>
 
@@ -109,6 +126,15 @@ export default function WorkerView() {
           </article>
         ))}
       </div>
+
+      <label className="filter-item">
+        <span>带宽配额列</span>
+        <input
+          type="checkbox"
+          checked={showBandwidth}
+          onChange={(event) => setShowBandwidth(event.target.checked)}
+        />
+      </label>
 
       <form className="filter-bar" onSubmit={(event) => { event.preventDefault(); void reload() }}>
         {filterFields.map((field) => (
@@ -128,14 +154,14 @@ export default function WorkerView() {
       <table className="data-table">
         <thead>
           <tr>
-            {columns.map((column) => <th key={column}>{column}</th>)}
+            {visibleColumns.map((column) => <th key={column}>{column}</th>)}
             <th>可执行动作</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={String(row.id)}>
-              {columns.map((column) => <td key={column}>{row[column] ?? '—'}</td>)}
+              {visibleColumns.map((column) => <td key={column}>{row[column] ?? '—'}</td>)}
               <td className="row-actions">
                 {actions.map((action) => (
                   <button key={action} className="link" type="button" onClick={() => void runAction(action, row)}>
@@ -147,7 +173,7 @@ export default function WorkerView() {
           ))}
           {rows.length === 0 && (
             <tr>
-              <td className="empty-state" colSpan={columns.length + 1}>暂无采集节点数据，可先登记工作节点</td>
+              <td className="empty-state" colSpan={visibleColumns.length + 1}>暂无采集节点数据，可先登记工作节点</td>
             </tr>
           )}
         </tbody>

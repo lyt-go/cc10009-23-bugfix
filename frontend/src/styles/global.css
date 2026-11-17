@@ -31,5 +31,12 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
 .btn.ghost { background: transparent; }
 .link { border: none; background: none; color: var(--brand); cursor: pointer; padding: 0; }
+.link:disabled { color: #9aa4b2; cursor: not-allowed; text-decoration: line-through; }
+.tab-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.tab { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--muted); }
+.tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.batch-bar { background: #fff; border: 1px dashed var(--border); border-radius: 8px; padding: 10px; }
+.batch-result { margin-top: 10px; }
 .page-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.notice-text { color: #067647; }
 .error-text { color: #b42318; }

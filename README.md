@@ -59,6 +59,38 @@ npm run dev
 | 渲染任务 | `rendertask` | 渲染作业 | 作业编号、目标URL、浏览器版本 |
 | 采集质量 | `qualityreport` | 质量报告 | 报告编号、作业编号、总URL数 |
 | 带宽控制 | `bandwidth` | 带宽策略 | 策略编号、节点标识、下载带宽上限 |
+
+带宽控制除策略本身外还会派生几份数据集，均由 `app/services/bandwidth.py` 维护：
+
+| 数据集 | 说明 |
+| --- | --- |
+| `bandwidth_allocation` | 节点带宽分配，同一节点可有多条历史版本，任意时刻只有一条生效/沿用 |
+| `bandwidth_execution` | 限速执行结果，同一节点只保留一条，切换时原地更新 |
+| `bandwidth_execution_history` | 切换/空窗沿用/离线留档，记录当时实际生效的策略快照 |
+| `bandwidth_traffic` | 下载任务按配额执行后的实际流量回写 |
+
+关键规则：
+
+- 策略必须走完「提交策略评审 → 启用策略」，暂停后恢复同样要重新评审；
+- 同一节点多条策略冲突时按优先级、策略版本、登记顺序选出唯一赢家，额度不叠加；
+- 高优先级策略到期、后继策略尚未进入生效时段时，沿用上一有效配额，避免节点短暂没有合法带宽分配；
+- 策略切换失败整体回滚，旧配额继续生效；重复启用/重复提交按幂等只保留一条分配与执行结果；
+- 节点离线只标记执行结果并留档，不删除当时的带宽执行记录；分配结果会回写到采集节点清单。
+
+带宽控制相关接口：
+
+```text
+GET  /api/bandwidth/allocations        节点带宽分配（支持 node/status/only_current）
+GET  /api/bandwidth/executions         限速执行结果（每节点一条）
+GET  /api/bandwidth/history            执行留档（切换、沿用、离线）
+GET  /api/bandwidth/traffic            下载流量回写流水
+POST /api/bandwidth/batch              同一节点多条策略整组提交，逐条返回唯一配额
+POST /api/bandwidth/reconcile          按生效时段校准配额
+GET  /api/bandwidth/nodes/{node}       集群节点侧读取节点带宽分配
+POST /api/bandwidth/nodes/{node}/traffic  下载任务按配额执行并回写实际流量
+```
+
+回归测试：`cd backend && .venv/bin/python -m unittest discover -s tests -v`
 | 重试队列 | `retryqueue` | 重试条目 | 条目编号、失败URL、失败原因码 |
 | 翻页管理 | `pagemarker` | 翻页规则 | 规则编号、目标站点、翻页类型 |
 | 增量标记 | `incrementmark` | 增量水位 | 水位编号、目标源、增量字段名 |
